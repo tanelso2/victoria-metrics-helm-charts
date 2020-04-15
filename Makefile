@@ -1,4 +1,4 @@
-URL=https://victoriametrics.github.io/helm-charts/
+URL=https://flowmill.github.io/victoria-metrics-helm-charts/
 
 # Run linter for helm chart
 lint:
