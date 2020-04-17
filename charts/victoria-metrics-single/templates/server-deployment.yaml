@@ -140,4 +140,9 @@ spec:
 {{- else }}
         emptyDir: {}
 {{- end }}
+      {{- range .Values.server.extraConfigmapMounts }}
+      - name: {{ $.Values.server.name }}-{{ .name }}
+        configMap:
+          name: {{ $.Release.Name }}-{{ .name }}
+      {{- end }}
 {{- end }}
