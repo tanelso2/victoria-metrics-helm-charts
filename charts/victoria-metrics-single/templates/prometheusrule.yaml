@@ -1,0 +1,50 @@
+# Alerts for the Victoria Metrics instances backing a single tenant
+{{- if .Values.alerts.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+{{- include "victoria-metrics.server.labels" . | nindent 4 }}
+  name: {{ include "victoria-metrics.server.fullname" . }}
+  # Must be in the monitoring namespace.
+  namespace: monitoring
+spec:
+  groups:
+  - name: {{ include "victoria-metrics.server.fullname" . }}.rules
+    rules:
+{{- if .Values.alerts.memoryLimit.enabled }}
+    - alert: VictoriaMemoryLimit_{{ .Release.Namespace }}
+      annotations:
+        message: Tenant "{{ .Release.Namespace }}" Victoria metrics exceeding memory limit ({{ .Values.prometheusMemoryAlertThreshold }}%)
+        runbook_url: https://github.com/Flowmill/flowmill/tree/master/handbook/source
+      expr: |
+        100 * (max_over_time(container_memory_working_set_bytes{container="victoria-metrics-server", namespace="{{ .Release.Namespace }}"}[5m]) /
+        max_over_time(container_spec_memory_limit_bytes{container="victoria-metrics-server", namespace="{{ .Release.Namespace }}"}[5m])) > {{ .Values.alerts.memoryLimit.threshold }}
+      for: 5m
+      labels:
+        severity: critical
+{{- end }}
+{{- if .Values.alerts.podRestarted.enabled }}
+    - alert: PrometheusRestarted_{{ .Release.Namespace }}
+      annotations:
+        message: Tenant "{{ .Release.Namespace }}" victoria-metrics restarted
+        runbook_url: https://github.com/Flowmill/flowmill/tree/master/handbook/source
+      expr: |
+        increase(kube_pod_container_status_restarts_total{container="victoria-metrics-server", namespace="{{ .Release.Namespace }}"}[5m]) > 0
+      labels:
+        severity: critical
+{{- end }}
+{{- if .Values.alerts.volumeUsage.enabled }}
+    - alert: PrometheusVolumeUsageCritical_{{ .Release.Namespace }}
+      annotations:
+        message: Tenant "{{ .Release.Namespace }}" persistent volume is 95% full
+        runbook_url: https://github.com/Flowmill/flowmill/tree/master/handbook/source
+      labels:
+        severity: critical
+      expr: |
+          100 * kubelet_volume_stats_available_bytes{persistentvolumeclaim="{{ include "victoria-metrics.server.fullname" .}}"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim="{{ include "victoria-metrics.server.fullname" .}}"} < 5
+      for: 5m
+{{- end }}
+
+{{- end }}

@@ -23,6 +23,16 @@ podDisruptionBudget:
 #  maxUnavailable: 1
   extraLabels: {}
 
+alerts:
+  enabled: true
+  memoryLimit:
+    enabled: true
+    treshold: 85
+  podRestarted:
+    enabled: true
+  volumeUsage:
+    enabled: true
+
 server:
   enabled: true
   name: server
